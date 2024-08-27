@@ -23,6 +23,8 @@ Page *pages;
 int *frames;
 int clockHand = 0;
 int currentTime = 0;
+int disk_writes = 0;
+int disk_reads = 0;
 
 /* Creates the page table structure to record memory allocation */
 int createMMU(int frameCount)
@@ -96,21 +98,15 @@ Page selectVictim(int page_number, enum repl mode)
         case clock_repl:
             while (1) {
                 int currentPage = frames[clockHand];
-                
-                // If the page is unmodified, select it as a victim
                 if (pages[currentPage].modified == 0) {
                     victimFrame = clockHand;
                     break;
                 } else {
-                    // If the page is modified, give it a second chance
                     pages[currentPage].modified = 0;
                     clockHand = (clockHand + 1) % numFrames;
                 }
+                if (clockHand == victimFrame) break;
             }
-
-            // Move the clock hand to the next frame for the next round
-            clockHand = (clockHand + 1) % numFrames;
-
             break;
     }
 
@@ -119,14 +115,18 @@ Page selectVictim(int page_number, enum repl mode)
     victim.modified = pages[victimPage].modified;
     victim.frameNo = victimFrame;
 
-    // Update page table and frame information
+    if (victim.modified) {
+        disk_writes++;
+    }
+
     pages[victimPage].frameNo = -1;
     frames[victimFrame] = page_number;
     pages[page_number].frameNo = victimFrame;
-    pages[page_number].modified = 0;  // New page starts as unmodified
+    pages[page_number].modified = 0;
 
     return victim;
 }
+
 
 
 

@@ -100,7 +100,7 @@ Page selectVictim(int page_number, enum repl mode)
                     clockHand = (clockHand + 1) % numFrames;
                     break;
                 }
-                pages[frames[clockHand]].modified = 0;
+                pages[frames[clockHand]].modified = 0;  // Reset the modified bit
                 clockHand = (clockHand + 1) % numFrames;
             }
             break;
@@ -109,13 +109,14 @@ Page selectVictim(int page_number, enum repl mode)
     int victimPage = frames[victimFrame];
     victim.pageNo = victimPage;
     victim.modified = pages[victimPage].modified;
-    victim.frameNo = victimFrame;  // Set the frame number of the victim
+    victim.frameNo = victimFrame;
 
     pages[victimPage].frameNo = -1;
-    pages[victimPage].modified = 0;
+    // Don't reset the modified bit here, it should be done in the main loop
 
     frames[victimFrame] = page_number;
     pages[page_number].frameNo = victimFrame;
+    pages[page_number].modified = 0;  // New page starts as unmodified
 
     return victim;
 }
@@ -189,7 +190,7 @@ int main(int argc, char *argv[])
     disk_writes = 0;
     disk_reads = 0;
 
-    do_line = fscanf(trace, "%x %c", &address, &rw);
+	do_line = fscanf(trace, "%x %c", &address, &rw);
     while (do_line == 2)
     {
         page_number = address >> pageoffset;
@@ -223,6 +224,7 @@ int main(int argc, char *argv[])
             if (debugmode) printf("reading    %8d \n", page_number);
         }
         else if (rw == 'W') {
+            pages[page_number].modified = 1;  // Set the modified bit
             if (debugmode) printf("writing    %8d \n", page_number);
         }
         else {

@@ -77,12 +77,10 @@ Page selectVictim(int page_number, enum repl mode)
 
     switch (mode) {
         case rand_repl:
-            // Random replacement remains unchanged
             victimFrame = rand() % numFrames;
             break;
 
         case lru:
-            // LRU replacement remains unchanged
             {
                 int oldestTime = currentTime;
                 for (int i = 0; i < numFrames; i++) {
@@ -96,28 +94,23 @@ Page selectVictim(int page_number, enum repl mode)
             break;
 
         case clock_repl:
-            // Revised Clock algorithm
-            int iterations = 0;
-            while (iterations < 2 * numFrames) {  // Allow up to two full cycles
+            while (1) {
                 int currentPage = frames[clockHand];
-                if (!pages[currentPage].modified) {
-                    // If the page is not modified, it can be evicted
+                
+                // If the page is unmodified, select it as a victim
+                if (pages[currentPage].modified == 0) {
                     victimFrame = clockHand;
-                    clockHand = (clockHand + 1) % numFrames;
                     break;
                 } else {
                     // If the page is modified, give it a second chance
                     pages[currentPage].modified = 0;
                     clockHand = (clockHand + 1) % numFrames;
                 }
-                iterations++;
             }
-            
-            // If no unmodified page found after two cycles, choose the current page
-            if (victimFrame == -1) {
-                victimFrame = clockHand;
-                clockHand = (clockHand + 1) % numFrames;
-            }
+
+            // Move the clock hand to the next frame for the next round
+            clockHand = (clockHand + 1) % numFrames;
+
             break;
     }
 
@@ -134,6 +127,7 @@ Page selectVictim(int page_number, enum repl mode)
 
     return victim;
 }
+
 
 
 void updatePageAccess(int page_number, char rw)

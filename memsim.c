@@ -77,10 +77,12 @@ Page selectVictim(int page_number, enum repl mode)
 
     switch (mode) {
         case rand_repl:
+            // Random replacement remains unchanged
             victimFrame = rand() % numFrames;
             break;
 
         case lru:
+            // LRU replacement remains unchanged
             {
                 int oldestTime = currentTime;
                 for (int i = 0; i < numFrames; i++) {
@@ -94,13 +96,26 @@ Page selectVictim(int page_number, enum repl mode)
             break;
 
         case clock_repl:
-            while (1) {
-                if (!pages[frames[clockHand]].modified) {
+            // Revised Clock algorithm
+            int iterations = 0;
+            while (iterations < 2 * numFrames) {  // Allow up to two full cycles
+                int currentPage = frames[clockHand];
+                if (!pages[currentPage].modified) {
+                    // If the page is not modified, it can be evicted
                     victimFrame = clockHand;
                     clockHand = (clockHand + 1) % numFrames;
                     break;
+                } else {
+                    // If the page is modified, give it a second chance
+                    pages[currentPage].modified = 0;
+                    clockHand = (clockHand + 1) % numFrames;
                 }
-                pages[frames[clockHand]].modified = 0;  // Reset the modified bit
+                iterations++;
+            }
+            
+            // If no unmodified page found after two cycles, choose the current page
+            if (victimFrame == -1) {
+                victimFrame = clockHand;
                 clockHand = (clockHand + 1) % numFrames;
             }
             break;
@@ -111,9 +126,8 @@ Page selectVictim(int page_number, enum repl mode)
     victim.modified = pages[victimPage].modified;
     victim.frameNo = victimFrame;
 
+    // Update page table and frame information
     pages[victimPage].frameNo = -1;
-    // Don't reset the modified bit here, it should be done in the main loop
-
     frames[victimFrame] = page_number;
     pages[page_number].frameNo = victimFrame;
     pages[page_number].modified = 0;  // New page starts as unmodified
@@ -215,21 +229,23 @@ int main(int argc, char *argv[])
                 }
                 else
                     if (debugmode) printf("Discard    %8d \n", Pvictim.pageNo);
-                frame_no = Pvictim.frameNo;  // Use the victim's frame for the new page
+                frame_no = Pvictim.frameNo;
             }
         }
 
+        // Update access information
         updatePageAccess(page_number, rw);
-        if (rw == 'R') {
-            if (debugmode) printf("reading    %8d \n", page_number);
+        
+        // Set modified bit for write operations
+        if (rw == 'W') {
+            pages[page_number].modified = 1;
         }
-        else if (rw == 'W') {
-            pages[page_number].modified = 1;  // Set the modified bit
-            if (debugmode) printf("writing    %8d \n", page_number);
-        }
-        else {
-            printf("Badly formatted file. Error on line %d\n", no_events + 1);
-            exit(-1);
+
+        if (debugmode) {
+            if (rw == 'R')
+                printf("reading    %8d \n", page_number);
+            else
+                printf("writing    %8d \n", page_number);
         }
 
         no_events++;

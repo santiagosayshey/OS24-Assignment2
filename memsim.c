@@ -102,11 +102,14 @@ Page selectVictim(int page_number, enum repl mode)
                     victimFrame = clockHand;
                     break;
                 } else {
+                    // Reset the modified bit and give the page a second chance
                     pages[currentPage].modified = 0;
                     clockHand = (clockHand + 1) % numFrames;
                 }
-                if (clockHand == victimFrame) break;
             }
+
+            // Move the clock hand to the next frame for the next round
+            clockHand = (clockHand + 1) % numFrames;
             break;
     }
 
@@ -119,6 +122,7 @@ Page selectVictim(int page_number, enum repl mode)
         disk_writes++;
     }
 
+    // Update page table and frame information
     pages[victimPage].frameNo = -1;
     frames[victimFrame] = page_number;
     pages[page_number].frameNo = victimFrame;
@@ -126,6 +130,7 @@ Page selectVictim(int page_number, enum repl mode)
 
     return victim;
 }
+
 
 
 

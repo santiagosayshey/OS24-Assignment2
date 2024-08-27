@@ -77,10 +77,12 @@ Page selectVictim(int page_number, enum repl mode)
 
     switch (mode) {
         case rand_repl:
+            // Random replacement remains unchanged
             victimFrame = rand() % numFrames;
             break;
 
         case lru:
+            // LRU replacement remains unchanged
             {
                 int oldestTime = currentTime;
                 for (int i = 0; i < numFrames; i++) {
@@ -94,18 +96,27 @@ Page selectVictim(int page_number, enum repl mode)
             break;
 
         case clock_repl:
-            while (1) {
+            // Revised Clock algorithm
+            int iterations = 0;
+            while (iterations < 2 * numFrames) {  // Allow up to two full cycles
                 int currentPage = frames[clockHand];
-                if (pages[currentPage].lastUsed == 0) {
-                    // If the use bit is 0, select this page as victim
+                if (!pages[currentPage].modified) {
+                    // If the page is not modified, it can be evicted
                     victimFrame = clockHand;
                     clockHand = (clockHand + 1) % numFrames;
                     break;
                 } else {
-                    // If the use bit is 1, give a second chance
-                    pages[currentPage].lastUsed = 0;
+                    // If the page is modified, give it a second chance
+                    pages[currentPage].modified = 0;
                     clockHand = (clockHand + 1) % numFrames;
                 }
+                iterations++;
+            }
+            
+            // If no unmodified page found after two cycles, choose the current page
+            if (victimFrame == -1) {
+                victimFrame = clockHand;
+                clockHand = (clockHand + 1) % numFrames;
             }
             break;
     }
@@ -119,7 +130,6 @@ Page selectVictim(int page_number, enum repl mode)
     pages[victimPage].frameNo = -1;
     frames[victimFrame] = page_number;
     pages[page_number].frameNo = victimFrame;
-    pages[page_number].lastUsed = 1;  // Set use bit to 1 for new page
     pages[page_number].modified = 0;  // New page starts as unmodified
 
     return victim;
@@ -128,9 +138,9 @@ Page selectVictim(int page_number, enum repl mode)
 
 void updatePageAccess(int page_number, char rw)
 {
-    pages[page_number].lastUsed = 1;  // Set use bit to 1
+    pages[page_number].lastUsed = currentTime++;
     if (rw == 'W') {
-        pages[page_number].modified = 1;  // Set modified bit for write operations
+        pages[page_number].modified = 1;
     }
 }
 
@@ -185,7 +195,16 @@ int main(int argc, char *argv[])
         }
     }
 
-    do_line = fscanf(trace, "%x %c", &address, &rw);
+    done = createMMU(numFrames);
+    if (done == -1) {
+        printf("Cannot create MMU");
+        exit(-1);
+    }
+    no_events = 0;
+    disk_writes = 0;
+    disk_reads = 0;
+
+	do_line = fscanf(trace, "%x %c", &address, &rw);
     while (do_line == 2)
     {
         page_number = address >> pageoffset;
@@ -214,7 +233,13 @@ int main(int argc, char *argv[])
             }
         }
 
+        // Update access information
         updatePageAccess(page_number, rw);
+        
+        // Set modified bit for write operations
+        if (rw == 'W') {
+            pages[page_number].modified = 1;
+        }
 
         if (debugmode) {
             if (rw == 'R')
@@ -226,7 +251,6 @@ int main(int argc, char *argv[])
         no_events++;
         do_line = fscanf(trace, "%x %c", &address, &rw);
     }
-
 
     printf("total memory frames:  %d\n", numFrames);
     printf("events in trace:      %d\n", no_events);

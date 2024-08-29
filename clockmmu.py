@@ -5,6 +5,7 @@ class ClockMMU(MMU):
         self.frames = frames
         self.page_table = {}
         self.clock_hand = 0
+        self.frame_list = []
         self.debug_mode = False
         self.total_disk_reads = 0
         self.total_disk_writes = 0
@@ -20,7 +21,7 @@ class ClockMMU(MMU):
         if page_number in self.page_table:
             if self.debug_mode:
                 print(f"Page {page_number} is already in memory")
-            self.page_table[page_number][0] = True  # Set reference bit
+            self.page_table[page_number][0] = True  # Set use bit
         else:
             self.total_page_faults += 1
             self._handle_page_fault(page_number)
@@ -29,7 +30,7 @@ class ClockMMU(MMU):
         if page_number in self.page_table:
             if self.debug_mode:
                 print(f"Page {page_number} is already in memory")
-            self.page_table[page_number] = [True, True]  # Set reference and dirty bits
+            self.page_table[page_number] = [True, True]  # Set use bit and dirty bit
         else:
             self.total_page_faults += 1
             self._handle_page_fault(page_number)
@@ -37,8 +38,9 @@ class ClockMMU(MMU):
 
     def _handle_page_fault(self, page_number):
         self.total_disk_reads += 1
-        if len(self.page_table) < self.frames:
-            self.page_table[page_number] = [True, False]  # [reference_bit, dirty_bit]
+        if len(self.frame_list) < self.frames:
+            self.page_table[page_number] = [True, False]  # [use_bit, dirty_bit]
+            self.frame_list.append(page_number)
             if self.debug_mode:
                 print(f"Page {page_number} loaded into memory")
         else:
@@ -46,20 +48,25 @@ class ClockMMU(MMU):
 
     def _replace_page(self, page_number):
         while True:
-            current_page = list(self.page_table.keys())[self.clock_hand]
-            if not self.page_table[current_page][0]:
-                if self.page_table[current_page][1]:
+            current_page = self.frame_list[self.clock_hand]
+            if not self.page_table[current_page][0]:  # use bit is 0
+                if self.page_table[current_page][1]:  # dirty bit is 1
                     self.total_disk_writes += 1
                     if self.debug_mode:
                         print(f"Page {current_page} written back to disk")
+                
                 del self.page_table[current_page]
-                self.page_table[page_number] = [True, False]  # [reference_bit, dirty_bit]
+                self.frame_list[self.clock_hand] = page_number
+                self.page_table[page_number] = [True, False]  # [use_bit, dirty_bit]
+                
                 if self.debug_mode:
                     print(f"Page {page_number} loaded into memory (replacing page {current_page})")
+                
+                self.clock_hand = (self.clock_hand + 1) % self.frames
                 break
             else:
-                self.page_table[current_page][0] = False  # Reset reference bit
-            self.clock_hand = (self.clock_hand + 1) % self.frames
+                self.page_table[current_page][0] = False  # Reset use bit
+                self.clock_hand = (self.clock_hand + 1) % self.frames
 
     def get_total_disk_reads(self):
         return self.total_disk_reads

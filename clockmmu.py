@@ -17,6 +17,7 @@ class ClockMMU(MMU):
         self.debug_mode = False
 
     def read_memory(self, page_number):
+        self.access_count += 1
         if page_number in self.page_table:
             if self.debug_mode:
                 print(f"Page {page_number} is already in memory")
@@ -26,6 +27,7 @@ class ClockMMU(MMU):
             self._handle_page_fault(page_number)
 
     def write_memory(self, page_number):
+        self.access_count += 1
         if page_number in self.page_table:
             if self.debug_mode:
                 print(f"Page {page_number} is already in memory")
@@ -35,20 +37,11 @@ class ClockMMU(MMU):
             self._handle_page_fault(page_number)
             self.page_table[page_number][1] = True  # Set dirty bit
 
-    def _handle_page_fault(self, page_number):
-        self.total_disk_reads += 1
-        if len(self.page_table) < self.frames:
-            self.page_table[page_number] = [True, False]  # [reference_bit, dirty_bit]
-            if self.debug_mode:
-                print(f"Page {page_number} loaded into memory")
-        else:
-            self._replace_page(page_number)
-
     def _replace_page(self, page_number):
-        attempts = 0
+        start_hand = self.clock_hand
         while True:
             current_page = list(self.page_table.keys())[self.clock_hand]
-            if not self.page_table[current_page][0] or attempts >= self.frames:
+            if not self.page_table[current_page][0]:
                 if self.page_table[current_page][1]:
                     self.total_disk_writes += 1
                     if self.debug_mode:
@@ -57,11 +50,13 @@ class ClockMMU(MMU):
                 self.page_table[page_number] = [True, False]  # [reference_bit, dirty_bit]
                 if self.debug_mode:
                     print(f"Page {page_number} loaded into memory (replacing page {current_page})")
+                self.clock_hand = (self.clock_hand + 1) % self.frames
                 break
             else:
-                self.page_table[current_page][0] = False  # Reset reference bit
+                # Only reset the reference bit if we've made a full cycle or based on access count
+                if self.clock_hand == start_hand or self.access_count % self.frames == 0:
+                    self.page_table[current_page][0] = False  # Reset reference bit
             self.clock_hand = (self.clock_hand + 1) % self.frames
-            attempts += 1
 
     def get_total_disk_reads(self):
         return self.total_disk_reads

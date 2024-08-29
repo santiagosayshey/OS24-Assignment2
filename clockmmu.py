@@ -38,7 +38,7 @@ class ClockMMU(MMU):
     def _handle_page_fault(self, page_number):
         self.total_disk_reads += 1
         if len(self.page_table) < self.frames:
-            self.page_table[page_number] = [False, False]  # [reference_bit, dirty_bit]
+            self.page_table[page_number] = [True, False]  # [reference_bit, dirty_bit]
             if self.debug_mode:
                 print(f"Page {page_number} loaded into memory")
         else:
@@ -53,13 +53,13 @@ class ClockMMU(MMU):
                     if self.debug_mode:
                         print(f"Page {current_page} written back to disk")
                 del self.page_table[current_page]
-                self.page_table[page_number] = [False, False]  # [reference_bit, dirty_bit]
+                self.page_table[page_number] = [True, False]  # [reference_bit, dirty_bit]
                 if self.debug_mode:
                     print(f"Page {page_number} loaded into memory (replacing page {current_page})")
                 break
             else:
                 self.page_table[current_page][0] = False  # Reset reference bit
-            self.clock_hand = (self.clock_hand + 1) % len(self.page_table)
+            self.clock_hand = (self.clock_hand + 1) % self.frames
 
     def get_total_disk_reads(self):
         return self.total_disk_reads

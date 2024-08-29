@@ -45,9 +45,10 @@ class ClockMMU(MMU):
             self._replace_page(page_number)
 
     def _replace_page(self, page_number):
+        attempts = 0
         while True:
             current_page = list(self.page_table.keys())[self.clock_hand]
-            if not self.page_table[current_page][0]:
+            if not self.page_table[current_page][0] or attempts >= self.frames:
                 if self.page_table[current_page][1]:
                     self.total_disk_writes += 1
                     if self.debug_mode:
@@ -60,6 +61,7 @@ class ClockMMU(MMU):
             else:
                 self.page_table[current_page][0] = False  # Reset reference bit
             self.clock_hand = (self.clock_hand + 1) % self.frames
+            attempts += 1
 
     def get_total_disk_reads(self):
         return self.total_disk_reads

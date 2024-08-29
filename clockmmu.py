@@ -20,6 +20,7 @@ class ClockMMU(MMU):
         if page_number in self.page_table:
             if self.debug_mode:
                 print(f"Page {page_number} is already in memory")
+            self.page_table[page_number][0] = True  # Set reference bit
         else:
             self.total_page_faults += 1
             self.total_disk_reads += 1
@@ -29,7 +30,6 @@ class ClockMMU(MMU):
                     print(f"Page {page_number} loaded into memory")
             else:
                 self._replace_page(page_number)
-        self.page_table[page_number][0] = True  # Set reference bit
 
     def write_memory(self, page_number):
         if page_number in self.page_table:
@@ -62,7 +62,7 @@ class ClockMMU(MMU):
                 break
             else:
                 self.page_table[current_page][0] = False  # Reset reference bit
-            self.clock_hand = (self.clock_hand + 1) % self.frames
+            self.clock_hand = (self.clock_hand + 1) % len(self.page_table)
 
     def get_total_disk_reads(self):
         return self.total_disk_reads

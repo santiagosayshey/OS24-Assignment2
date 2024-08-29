@@ -62,7 +62,7 @@ class ClockMMU(MMU):
                 break
             else:
                 self.page_table[current_page][0] = False  # Reset reference bit
-            self.clock_hand = (self.clock_hand + 1) % len(self.page_table)
+            self.clock_hand = (self.clock_hand + 1) % self.frames
 
     def get_total_disk_reads(self):
         return self.total_disk_reads

@@ -44,9 +44,12 @@ class ClockMMU(MMU):
             self._replace_page(page_number)
 
     def _replace_page(self, page_number):
-        while True:
+        victim_found = False
+        initial_hand = self.clock_hand
+        while not victim_found:
             current_page = list(self.page_table.keys())[self.clock_hand]
             if not self.page_table[current_page][0]:
+                # Found a victim
                 if self.page_table[current_page][1]:
                     self.total_disk_writes += 1
                     if self.debug_mode:
@@ -55,11 +58,21 @@ class ClockMMU(MMU):
                 self.page_table[page_number] = [True, False]  # [reference_bit, dirty_bit]
                 if self.debug_mode:
                     print(f"Page {page_number} loaded into memory (replacing page {current_page})")
-                self.clock_hand = (self.clock_hand + 1) % self.frames
-                break
+                victim_found = True
             else:
                 self.page_table[current_page][0] = False  # Reset reference bit
+            
             self.clock_hand = (self.clock_hand + 1) % self.frames
+            
+            # If we've gone full circle without finding a victim, force replacement
+            if self.clock_hand == initial_hand and not victim_found:
+                victim_page = list(self.page_table.keys())[self.clock_hand]
+                if self.page_table[victim_page][1]:
+                    self.total_disk_writes += 1
+                del self.page_table[victim_page]
+                self.page_table[page_number] = [True, False]
+                self.clock_hand = (self.clock_hand + 1) % self.frames
+                break
 
     def get_total_disk_reads(self):
         return self.total_disk_reads

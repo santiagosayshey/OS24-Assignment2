@@ -1,9 +1,9 @@
+
 from clockmmu import ClockMMU
 from lrummu import LruMMU
 from randmmu import RandMMU
 
 import sys
-
 
 def main():
     PAGE_OFFSET = 12  # page is 2^12 = 4KB
@@ -33,7 +33,6 @@ def main():
        return
 
     replacement_mode = sys.argv[3]
-
     # Setup MMU based on replacement mode
     if replacement_mode == "rand":
         mmu = RandMMU(frames)
@@ -42,7 +41,7 @@ def main():
     elif replacement_mode == "clock":
         mmu = ClockMMU(frames)
     else:
-        print("Invalid replacement mode. Valid options are [rand, lru, clock]")
+        print("Invalid replacement mode. Valid options are [rand, lru, esc]")
         return
 
     debug_mode  = sys.argv[4]
@@ -91,4 +90,5 @@ def main():
 
 if __name__ == "__main__":
     main()
-                    
+
+                

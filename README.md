@@ -25,31 +25,55 @@ chmod +x setup.sh
 
 ## Running Tests and Generating Graphs
 
-1. Run the test script with specific parameters:
+The `run_tests.sh` script supports three modes of operation:
+
+1. Single trace, single algorithm:
 
 ```
-chmod +x test.sh
-./run_test.sh <trace> <algorithm> <start_frames> <end_frames> <step_frames>
+
+./run_tests.sh <trace> <algorithm> <start_frames> <end_frames> <step_frames>
+
+```
+
+2. Single trace, all algorithms:
+
+```
+
+./run_tests.sh <trace> all <start_frames> <end_frames> <step_frames>
+
+```
+
+3. All traces, all algorithms:
+
+```
+
+./run_tests.sh all <start_frames> <end_frames> <step_frames>
 
 ```
 
 Available traces: bzip, gcc, swim, sixpack
 Available algorithms: rand, lru, clock
 
+Frame parameters are optional. If not provided, default values are:
+
+- start_frames: 10
+- end_frames: 100
+- step_frames: 10
+
 This script will:
 
-- Run the simulator for the specified trace file with the given algorithm and frame range
+- Run the simulator for the specified trace(s) with the given algorithm(s) and frame range
 - Save the results in `results.csv`
-- Automatically call `graphs.py` to generate a performance graph
+- Automatically call `graphs.py` to generate performance graph(s)
 
-2. After the script completes, you'll find:
+After the script completes, you'll find:
 
 - `results.csv` in the project root, containing raw simulation data
-- A `graphs/` directory containing a PNG file for the specified trace and algorithm combination
+- A `graphs/` directory containing PNG file(s) for the specified trace(s) and algorithm(s) combination(s)
 
 ## Example Usage
 
-To run the simulation for the 'bzip' trace using the 'rand' algorithm, with frames starting at 10, ending at 100, and incrementing by 10:
+1. Run simulation for 'bzip' trace using 'rand' algorithm:
 
 ```
 
@@ -57,12 +81,28 @@ To run the simulation for the 'bzip' trace using the 'rand' algorithm, with fram
 
 ```
 
-This will generate:
+2. Run simulation for 'gcc' trace using all algorithms:
+
+```
+
+./run_tests.sh gcc all
+
+```
+
+3. Run simulation for all traces and all algorithms:
+
+```
+
+./run_tests.sh all
+
+```
+
+These commands will generate:
 
 - A `results.csv` file with the simulation data
-- A graph file `graphs/bzip_rand_fault_rate.png` showing the fault rate vs frame size for this specific configuration
+- Graph files in the `graphs/` directory showing the fault rate vs frame size for the specified configurations
 
 ## Viewing Results
 
 - Raw data: Open `results.csv` to view detailed simulation results.
-- Graphs: Check the `graphs/` directory for visual representations of fault rates vs frame sizes for the specified trace and algorithm combination.
+- Graphs: Check the `graphs/` directory for visual representations of fault rates vs frame sizes for the specified trace(s) and algorithm(s) combination(s).

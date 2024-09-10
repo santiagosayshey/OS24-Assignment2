@@ -1,6 +1,20 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import os
+import sys
+
+# Check if correct number of arguments are provided
+if len(sys.argv) != 6:
+    print(
+        "Usage: python graphs.py <trace> <algorithm> <start_frames> <end_frames> <step_frames>"
+    )
+    sys.exit(1)
+
+trace = sys.argv[1]
+algorithm = sys.argv[2]
+start_frames = int(sys.argv[3])
+end_frames = int(sys.argv[4])
+step_frames = int(sys.argv[5])
 
 # Get the current script's directory
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -15,29 +29,25 @@ graphs_dir = os.path.join(project_root, 'graphs')
 if not os.path.exists(graphs_dir):
     os.makedirs(graphs_dir)
 
-# Create a plot for each trace and each algorithm
-for trace in df['trace'].unique():
-    for algorithm in df['algorithm'].unique():
-        plt.figure(figsize=(10, 6))
+# Filter data for the specified trace and algorithm
+data = df[(df['trace'] == trace) & (df['algorithm'] == algorithm)]
 
-        # Filter data for the current trace and algorithm
-        data = df[(df['trace'] == trace) & (df['algorithm'] == algorithm)]
+# Create the plot
+plt.figure(figsize=(10, 6))
+plt.plot(data['frames'], data['fault_rate'])
+plt.title(
+    f'Fault Rate vs Frame Size - {trace} Trace, {algorithm.upper()} Algorithm')
+plt.xlabel('Number of Frames')
+plt.ylabel('Fault Rate')
+plt.grid(True)
 
-        # Plot fault rate vs frame size
-        plt.plot(data['frames'], data['fault_rate'])
+# Set x-axis ticks based on the provided range
+plt.xticks(range(start_frames, end_frames + 1, step_frames))
 
-        plt.title(
-            f'Fault Rate vs Frame Size - {trace} Trace, {algorithm.upper()} Algorithm'
-        )
-        plt.xlabel('Number of Frames')
-        plt.ylabel('Fault Rate')
-        plt.grid(True)
-
-        # Save the figure
-        plt.savefig(
-            os.path.join(graphs_dir, f'{trace}_{algorithm}_fault_rate.png'))
-        plt.close()
+# Save the figure
+plt.savefig(os.path.join(graphs_dir, f'{trace}_{algorithm}_fault_rate.png'))
+plt.close()
 
 print(
-    "12 graphs generated (one for each algorithm for each trace) in the 'graphs' directory."
+    f"Graph generated for {trace} trace with {algorithm} algorithm in the 'graphs' directory."
 )
